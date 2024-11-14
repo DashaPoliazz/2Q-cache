@@ -1,0 +1,67 @@
+#Ignore googletest folder
+googletest/
+
+# Ignore the build directory
+build/
+
+# Ignore common compiled object files
+*.o
+*.obj
+
+# Ignore executables and libraries
+*.exe
+*.out
+*.app
+*.so
+*.dylib
+*.dll
+*.a
+*.lib
+
+# Ignore debug files and core dumps
+*.log
+*.stackdump
+core
+*.core
+*.dmp
+
+# Ignore temporary files created by editors or the OS
+*~
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Ignore IDE and editor-specific files
+.vscode/
+.idea/
+*.code-workspace
+
+# Ignore coverage and test result files
+coverage/
+*.gcda
+*.gcno
+*.gcov
+
+# Ignore CMake and Makefile artifacts if using CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Ignore autotools generated files
+/autom4te.cache
+/config.cache
+/config.log
+/config.status
+/depcomp
+/install-sh
+/ltmain.sh
+/missing
+/aclocal.m4
+/compile
+/configure
+
+# Ignore Python virtual environments (if any are used for automation scripts)
+venv/
+.env/
