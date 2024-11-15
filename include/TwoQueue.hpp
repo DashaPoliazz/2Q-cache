@@ -52,28 +52,9 @@ struct TwoQueue
         bool exists = it != lookup.end();
         if (!exists) {
             /* evicting the oldest elements from 'Qin' & 'Qout' if needed */
-            bool need_to_adjust_Qin = Qin.size() >= config.QinCapacity;
-            /* it has to be moved to 'Qout' */
-            if (need_to_adjust_Qin) {
-                /* adjusting 'Qout' if it's needed */
-                bool need_to_adjust_Qout = Qout.size() >= config.QoutCapacity;
-                if (need_to_adjust_Qout) {
-                    T oldest_Qout_element = Qout.front();
-                    Qout.pop_front();
-                    lookup.erase(oldest_Qout_element);
-                }
-                /* evicting element from 'Qin' and moving it to adjusted 'Qout' */
-                T oldest_Qin_element = Qin.front();
-                Qin.pop_front();
-                Qout.push_back(oldest_Qin_element);
-                lookup[oldest_Qin_element] = { std::prev(Qout.end()), QueueType::Qout };
-            }
-            /* adding element in the 'Qin' */
-            Qin.push_back(value);
-            lookup[value] = { std::prev(Qin.end()), QueueType::Qin };
+            push_Qin(value);
             return;
         }
-
         /* otherwise we have to move it to 'Qmain' */
         QueueType queue_type = it->second.queue_type;
         /* aldredy in 'Qmain' */
@@ -88,15 +69,7 @@ struct TwoQueue
             Qout.erase(iter_to_erase);
         }
 
-        /* adjusting Qmain */
-        if (Qmain.size() >= config.QmainCapacity) {
-            T oldest_Qmain_element = Qmain.front();
-            Qmain.pop_front();
-            lookup.erase(oldest_Qmain_element);
-        }
-        /* adding to the 'Qmain' */
-        Qmain.push_back(value);
-        lookup[value] = { std::prev(Qmain.end()), QueueType::Qmain };
+        push_Qmain(value);
     }
 
     void pop()
@@ -122,6 +95,44 @@ struct TwoQueue
     }
 
 private:
+    void push_Qin(const T& value)
+    {
+        bool need_to_adjust_Qin = Qin.size() >= config.QinCapacity;
+        if (need_to_adjust_Qin) {
+            T oldest_Qin_element = Qin.front();
+            Qin.pop_front();
+            push_Qout(oldest_Qin_element);
+            // Update `lookup` after `push_Qout` adjustments
+            lookup[oldest_Qin_element] = { std::prev(Qout.end()), QueueType::Qout };
+        }
+        Qin.push_back(value);
+        lookup[value] = { std::prev(Qin.end()), QueueType::Qin };
+    }
+
+    void push_Qout(const T& value)
+    {
+        bool need_to_adjust_Qout = Qout.size() >= config.QoutCapacity;
+        if (need_to_adjust_Qout) {
+            T oldest_Qout_element = Qout.front();
+            Qout.pop_front();
+            lookup.erase(oldest_Qout_element);
+        }
+        Qout.push_back(value);
+    }
+
+    void push_Qmain(const T& value)
+    {
+        /* adjusting Qmain */
+        if (Qmain.size() >= config.QmainCapacity) {
+            T oldest_Qmain_element = Qmain.front();
+            Qmain.pop_front();
+            lookup.erase(oldest_Qmain_element);
+        }
+        /* adding to the 'Qmain' */
+        Qmain.push_back(value);
+        lookup[value] = { std::prev(Qmain.end()), QueueType::Qmain };
+    }
+
     TwoQueueConfig config;
     std::list<T> Qin;
     std::list<T> Qout;
