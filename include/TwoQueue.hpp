@@ -1,6 +1,6 @@
-#ifndef TWO_QUEUE
-#define TWO_QUEUE
+#pragma once
 
+#include <iterator>
 #include <list>
 #include <unordered_map>
 
@@ -11,18 +11,18 @@ enum class QueueType
     Qmain
 };
 
-template <typename T>
+template <typename V>
 struct LookupValue
 {
-    typename std::list<T>::iterator it;
+    typename std::list<V>::iterator it;
     QueueType queue_type;
 
     LookupValue()
         : queue_type(QueueType::Qin)
     {
-    }   // Default QueueType (optional)
+    }
 
-    LookupValue(typename std::list<T>::iterator it, QueueType queue_type)
+    LookupValue(typename std::list<V>::iterator it, QueueType queue_type)
         : it(it)
         , queue_type(queue_type)
     {
@@ -31,28 +31,55 @@ struct LookupValue
 
 struct TwoQueueConfig
 {
-    std::size_t QinCapacity;
-    std::size_t QoutCapacity;
-    std::size_t QmainCapacity;
+    size_t QinCapacity;
+    size_t QoutCapacity;
+    size_t QmainCapacity;
 };
 
-template <typename T>
+template <typename K, typename V>
 struct TwoQueue
 {
-    /* constructor */
     TwoQueue(TwoQueueConfig config)
         : config(config)
     {
     }
 
-    void push(const T& value)
+    void pop()
+    {
+    }
+
+    /* for testing purposes */
+    const std::list<V>& get_qin() const
+    {
+        return Qin;
+    }
+    const std::list<V>& get_qout() const
+    {
+        return Qout;
+    }
+    const std::list<V>& get_qmain() const
+    {
+        return Qmain;
+    }
+    const std::unordered_map<K, LookupValue<V>> get_lookup() const
+    {
+        return lookup;
+    }
+
+    void put(const K& key, const V& value)
+    {
+        push(key, value);
+    }
+
+private:
+    void push(const K& key, const V& value)
     {
         /* if there is no such element it has to be just added in 'Qin' */
-        auto it = lookup.find(value);
+        auto it = lookup.find(key);
         bool exists = it != lookup.end();
         if (!exists) {
             /* evicting the oldest elements from 'Qin' & 'Qout' if needed */
-            push_Qin(value);
+            push_Qin(key, value);
             return;
         }
         /* otherwise we have to move it to 'Qmain' */
@@ -69,75 +96,58 @@ struct TwoQueue
             Qout.erase(iter_to_erase);
         }
 
-        push_Qmain(value);
+        push_Qmain(key, value);
     }
 
-    void pop()
-    {
-    }
-
-    /* for testing purposes */
-    const std::list<T>& get_qin() const
-    {
-        return Qin;
-    }
-    const std::list<T>& get_qout() const
-    {
-        return Qout;
-    }
-    const std::list<T>& get_qmain() const
-    {
-        return Qmain;
-    }
-    const std::unordered_map<T, LookupValue<T>> get_lookup() const
-    {
-        return lookup;
-    }
-
-private:
-    void push_Qin(const T& value)
+    void push_Qin(const K& key, const V& value)
     {
         bool need_to_adjust_Qin = Qin.size() >= config.QinCapacity;
         if (need_to_adjust_Qin) {
-            T oldest_Qin_element = Qin.front();
+            V oldest_Qin_element = Qin.front();
+            K oldest_key = reverse_lookup[oldest_Qin_element];
             Qin.pop_front();
-            push_Qout(oldest_Qin_element);
-            // Update `lookup` after `push_Qout` adjustments
-            lookup[oldest_Qin_element] = { std::prev(Qout.end()), QueueType::Qout };
+            push_Qout(oldest_key, oldest_Qin_element);
         }
         Qin.push_back(value);
-        lookup[value] = { std::prev(Qin.end()), QueueType::Qin };
+        lookup[key] = { std::prev(Qin.end()), QueueType::Qin };
+        reverse_lookup[value] = key;
     }
 
-    void push_Qout(const T& value)
+    void push_Qout(const K& key, const V& value)
     {
         bool need_to_adjust_Qout = Qout.size() >= config.QoutCapacity;
         if (need_to_adjust_Qout) {
-            T oldest_Qout_element = Qout.front();
+            V oldest_Qout_element = Qout.front();
+            K oldest_key = reverse_lookup[oldest_Qout_element];
             Qout.pop_front();
-            lookup.erase(oldest_Qout_element);
+            lookup.erase(oldest_key);
+            reverse_lookup.erase(oldest_Qout_element);
         }
         Qout.push_back(value);
+        lookup[key] = { std::prev(Qout.end()), QueueType::Qout };
+        reverse_lookup[value] = key;
     }
 
-    void push_Qmain(const T& value)
+    void push_Qmain(const K& key, const V& value)
     {
         /* adjusting Qmain */
         if (Qmain.size() >= config.QmainCapacity) {
-            T oldest_Qmain_element = Qmain.front();
+            V oldest_Qmain_element = Qmain.front();
+            K oldest_key = reverse_lookup[oldest_Qmain_element];
             Qmain.pop_front();
-            lookup.erase(oldest_Qmain_element);
+            lookup.erase(oldest_key);
+            reverse_lookup.erase(oldest_Qmain_element);
         }
         /* adding to the 'Qmain' */
         Qmain.push_back(value);
-        lookup[value] = { std::prev(Qmain.end()), QueueType::Qmain };
+        lookup[key] = { std::prev(Qmain.end()), QueueType::Qmain };
+        reverse_lookup[value] = key;
     }
 
     TwoQueueConfig config;
-    std::list<T> Qin;
-    std::list<T> Qout;
-    std::list<T> Qmain;
-    std::unordered_map<T, LookupValue<T>> lookup;
+    std::list<V> Qin;
+    std::list<V> Qout;
+    std::list<V> Qmain;
+    std::unordered_map<K, LookupValue<V>> lookup;
+    std::unordered_map<V, K> reverse_lookup;
 };
-
-#endif
