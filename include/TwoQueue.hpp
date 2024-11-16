@@ -49,8 +49,68 @@ struct TwoQueue
     {
     }
 
-    void pop()
+    void put(const K& key, const V& value)
     {
+        push(key, value);
+    }
+
+    std::optional<std::reference_wrapper<V>> get(const K& key)
+    {
+        auto it = lookup.find(key);
+        /* nothing to move */
+        if (it == lookup.end()) {
+            return std::nullopt;
+        }
+
+        QueueType queue_type = it->second.queue_type;
+        auto value_to_move = it->second.it;
+        /* if the element is in 'Qmain' then it's either */
+        if (queue_type == QueueType::Qmain) {
+            /* on the last position */
+            if (std::prev(Qmain.end()) == value_to_move) {
+                return *value_to_move;
+            }
+            /* or it has to be moved on the last position */
+            Qmain.splice(Qmain.end(), Qmain, value_to_move);
+            it->second.it = std::prev(Qmain.end());
+            return *value_to_move;
+        }
+
+        /* the element not in 'Qmain' and it should be moved in it */
+        auto& current_queue = queue_type == QueueType::Qin ? Qin : Qout;
+        current_queue.erase(value_to_move);
+
+        push_Qmain(key, *value_to_move);
+
+        return *std::prev(Qmain.end());
+    }
+
+    bool contains(const K& key)
+    {
+        return lookup.count(key);
+    }
+
+    void erase(const K& key)
+    {
+        auto it = lookup.find(key);
+        if (it == lookup.end()) {
+            return;
+        }
+
+        switch (it->second.queue_type) {
+        case QueueType::Qin:
+            Qin.erase(it->second.it);
+            break;
+        case QueueType::Qout:
+            Qout.erase(it->second.it);
+            break;
+        case QueueType::Qmain:
+            Qmain.erase(it->second.it);
+            break;
+        }
+
+        reverse_lookup.erase(*it->second.it);
+        lookup.erase(it);
     }
 
     /* for testing purposes */
@@ -69,40 +129,6 @@ struct TwoQueue
     const std::unordered_map<K, LookupValue<V>> get_lookup() const
     {
         return lookup;
-    }
-
-    void put(const K& key, const V& value)
-    {
-        push(key, value);
-    }
-
-    std::optional<std::reference_wrapper<V>> get(const K& key)
-    {
-        /* value should be moved to the end (most recent used) */
-        auto it = lookup.find(key);
-        if (it == lookup.end()) {
-            /* there is no value */
-            std::cout << "NULLOPT" << "\n";
-            return std::nullopt;
-        }
-        /* otherwise it could be not in 'Qmain' */
-        // if (it->second.queue_type != QueueType::Qmain) {
-        //     return std::nullopt;
-        // }
-
-        /* don't have to be moved */
-        auto value_to_move = it->second.it;
-        if (std::prev(Qmain.end()) == value_to_move) {
-            return *value_to_move;
-        }
-
-        /* independenlty on element's queue it has be moved to 'Qmain' */
-        /* moving element to the 'most recently used' */
-        Qmain.splice(Qmain.end(), Qmain, value_to_move);
-        it->second.it = std::prev(Qmain.end());
-        it->second.queue_type = QueueType::Qmain;
-
-        return *value_to_move;
     }
 
 private:
@@ -169,8 +195,9 @@ private:
             V oldest_Qmain_element = Qmain.front();
             K oldest_key = reverse_lookup[oldest_Qmain_element];
             Qmain.pop_front();
-            lookup.erase(oldest_key);
-            reverse_lookup.erase(oldest_Qmain_element);
+            // lookup.erase(oldest_key);
+            // reverse_lookup.erase(oldest_Qmain_element);
+            push_Qout(oldest_key, oldest_Qmain_element);
         }
         /* adding to the 'Qmain' */
         Qmain.push_back(value);
