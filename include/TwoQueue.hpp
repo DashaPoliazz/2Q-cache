@@ -1,7 +1,12 @@
 #pragma once
 
+#include <algorithm>
+#include <functional>
+#include <iostream>
 #include <iterator>
 #include <list>
+#include <memory>
+#include <optional>
 #include <unordered_map>
 
 enum class QueueType
@@ -69,6 +74,35 @@ struct TwoQueue
     void put(const K& key, const V& value)
     {
         push(key, value);
+    }
+
+    std::optional<std::reference_wrapper<V>> get(const K& key)
+    {
+        /* value should be moved to the end (most recent used) */
+        auto it = lookup.find(key);
+        if (it == lookup.end()) {
+            /* there is no value */
+            std::cout << "NULLOPT" << "\n";
+            return std::nullopt;
+        }
+        /* otherwise it could be not in 'Qmain' */
+        // if (it->second.queue_type != QueueType::Qmain) {
+        //     return std::nullopt;
+        // }
+
+        /* don't have to be moved */
+        auto value_to_move = it->second.it;
+        if (std::prev(Qmain.end()) == value_to_move) {
+            return *value_to_move;
+        }
+
+        /* independenlty on element's queue it has be moved to 'Qmain' */
+        /* moving element to the 'most recently used' */
+        Qmain.splice(Qmain.end(), Qmain, value_to_move);
+        it->second.it = std::prev(Qmain.end());
+        it->second.queue_type = QueueType::Qmain;
+
+        return *value_to_move;
     }
 
 private:
