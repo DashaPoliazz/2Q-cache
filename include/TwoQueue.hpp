@@ -1,5 +1,6 @@
 #pragma once
 
+#include "./TwoQueueConfig.hpp"
 #include <algorithm>
 #include <functional>
 #include <iostream>
@@ -32,13 +33,6 @@ struct LookupValue
         , queue_type(queue_type)
     {
     }
-};
-
-struct TwoQueueConfig
-{
-    size_t QinCapacity;
-    size_t QoutCapacity;
-    size_t QmainCapacity;
 };
 
 template <typename K, typename V>
@@ -113,7 +107,6 @@ struct TwoQueue
         lookup.erase(it);
     }
 
-    /* for testing purposes */
     const std::list<V>& get_qin() const
     {
         return Qin;
