@@ -107,13 +107,3 @@ g++ -std=c++17 -I<path_to_gtest_include> -o tests tests.cpp -L<path_to_gtest_lib
 ./tests
 ```
 
-## **Contributing**
-Feel free to submit issues or fork the repository and open a pull request to suggest improvements. Any contributions to make the cache structure more efficient, robust, and feature-rich are very welcome!
-
-## **License**
-This project is licensed under the MIT License.
-
----
-
-Thank you for using TwoQueue! If you have any questions or need help integrating it into your project, don't hesitate to reach out.
-
